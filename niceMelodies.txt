@@ -1,0 +1,6 @@
+[60, 67, 60, 72, 67, 62, 62, 60] - MarkovModelAllEqual
+
+[60, 76, 59, 72, 67, 72, 67, 60] - MarkovModelAllEqual2
+
+http://nickkellyresearch.com/python-script-transpose-midi-files-c-minor/
+
