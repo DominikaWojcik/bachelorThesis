@@ -1,5 +1,6 @@
 from mido import MidiFile
 import numpy as np
+from classes import Note
 
 # więcej niż jedna nutka do tyłu
 
@@ -11,87 +12,74 @@ import numpy as np
 
 # potem polifonizacja
 
-
 dic = {}
-sound_amount = {}
-mid = MidiFile('river_flow.mid')
-ticks_per_beat = mid.ticks_per_beat
-tempo = 60
+notes_amount = {}
+notes = {}
 
 
-def get_duration(msg, track):
-    duration = 0
-    found = False
-    for m in track:
-        if found is False and m == msg:
-            duration = 0
-            found = True
-
-        elif found and m.dict().get("type") == "note_off" and \
-                        m.dict().get("channel") == msg.dict().get("channel") and \
-                        m.dict().get("note") == msg.dict().get("note") or \
-                        \
-                        m.dict().get("channel") == msg.dict().get("channel") and \
-                        m.dict().get("note") == msg.dict().get("note") and \
-                        m.dict().get("velocity") == 0:
-
-            return round(float(m.dict().get("time") + duration) / 250) * 250
-        elif found:
-            duration += m.dict().get("time")
-
-
-def ticks_to_ms(ticks):
+def ticks_to_ms(ticks, ticks_per_beat, tempo):
     ms = ((ticks / ticks_per_beat) * tempo) / 1000
     return int(ms - (ms % 250) + 250)
 
 
-def add_to_chain(prev, curr, duration, shift):
-    for p in prev:
-        p -= shift
-        for c in curr:
-            c -= shift
-            if p not in dic:
-                dic[p] = {}
-                sound_amount[p] = 0
-            sound_amount[p] += 1
+def proccess_msg(mid):
+    temp_notes = []
+    time = 0
+    duration = 0
+    for i, track in enumerate(mid.tracks):
+        bunch = [0]
 
-            if (c, ticks_to_ms(duration)) not in dic[p]:
-                dic[p][(c, ticks_to_ms(duration))] = 1
-            else:
-                dic[p][(c, ticks_to_ms(duration))] += 1
+        for msg in track:
+            if msg.type == "set_tempo":
+                tempo = msg.tempo
+
+            if msg.dict().get("type") == "note_off":
+                time += msg.dict().get("time")
+                duration += msg.dict().get("time")
+                continue
+
+            if msg.dict().get("note"):
+                if duration + msg.dict().get("time") == 0:
+                    bunch.append(msg.dict().get("note"))
+                else:
+                    duration += msg.dict().get("time")
+                    # temp_notes.append(((bunch), duration, time))  #<-  coś takiego jeśli chcemy całe akordy
+                    temp_notes.append((max(bunch), duration, time))
+                    time += duration
+                    duration = 0
+                    bunch = [msg.dict().get("note")]
+    return temp_notes, tempo
 
 
 def compose_song(songs, shifts):
-    print(shifts)
     for song, shift in zip(songs, shifts):
         mid = MidiFile(song)
-        for i, track in enumerate(mid.tracks):
-            print('Track {}: {}'.format(i, track.name))
+        temp, tempo = proccess_msg(mid)
+        ticks_per_beat = mid.ticks_per_beat
 
-            curr = []
-            prev = []
+        curr = None
+        for note in temp:
+            prev = curr
+            curr = note
+            if prev is None:
+                continue
 
-            for msg in track:
-                if msg.type == "set_tempo":
-                    tempo = msg.tempo
-                if msg.dict().get("type") == "note_off":
-                    print(msg)
-                    continue
+            p = Note(prev[0] - shift, ticks_to_ms(prev[1], ticks_per_beat, tempo))
+            c = Note(curr[0] - shift, ticks_to_ms(curr[1], ticks_per_beat, tempo))
 
-                if msg.dict().get("note"):
+            if p not in dic:
+                dic[p] = {}
+                notes_amount[p] = 0
+            notes_amount[p] += 1
 
-                    if msg.dict().get("time") == 0:
-                        curr.append(msg.dict().get("note"))
-                    else:
-                        add_to_chain(prev, curr, msg.dict().get("time"), shift)
-                        prev = curr
-                        curr = []
-
-                    print(msg)
+            if c not in dic[p]:
+                dic[p][c] = 1
+            else:
+                dic[p][c] += 1
 
     for p in dic.keys():
         for c in dic[p].keys():
-            dic[p][c] /= sound_amount[p]
+            dic[p][c] /= notes_amount[p]
 
     print(dic)
 
@@ -101,11 +89,13 @@ def compose_song(songs, shifts):
     dur = 1000
     degr.append(sound)
     durations.append(dur)
+    n = np.random.choice(list(dic.keys()))
+    notes = [n]
+    print(notes)
     for i in range(20):
-        sound = np.random.choice([x[0] for x in list(dic[sound].keys())], 1, list(dic[sound].values()))[0]
-        degr.append(sound)
+        n = np.random.choice([x for x in list(dic[n].keys())], 1, list(dic[n].values()))[0]
+        notes.append(n)
 
-        dur = np.random.choice([x[1] for x in list(dic[sound].keys())], 1, list(dic[sound].values()))[0]
-        durations.append(dur)
+    print(notes)
+    return notes
 
-    return degr, durations

@@ -27,7 +27,7 @@ def good_distance(sound1, sound2):
     return False
 
 
-def record_song(degr, durations):
+def record_song(notes):
     track = 0
     channel = 0
     time = 0  # In beats
@@ -38,38 +38,9 @@ def record_song(degr, durations):
     my_midi = MIDIFile(1)  # One track, defaults to format 1
     my_midi.addTempo(track, time, tempo)
 
-    melody = []
+    for n in notes:
+        my_midi.addNote(track, channel, n.sound, time, n.duration / 1000, volume)
+        time += n.duration / 1000
 
-    for i, pitch in enumerate(degr):
-        if i == 0:
-            my_midi.addNote(track, channel, pitch, 0, durations[i] / 1000, volume)
-        else:
-            time = time + durations[i - 1] / 1000
-            my_midi.addNote(track, channel, pitch, time, durations[i] / 1000, volume)
-
-        for j in range(int(durations[i] / 250)):
-            melody.append(pitch)
-
-    # degr.reverse()
-    # durations.reverse()
-    degr = mirror(degr)
-    track = 1
-    time = 0
-    melody2 = []
-
-    # druga linia
-    # poki co niepotrzebna
-    # for i, pitch in enumerate(degr):
-    #     if i == 0:
-    #         my_midi.addNote(track, channel, pitch, 0, durations[i] / 1000, volume)
-    #     else:
-    #         time = time + durations[i - 1] / 1000
-    #         my_midi.addNote(track, channel, pitch, time, durations[i] / 1000, volume)
-    #
-    #     for j in range(int(durations[i] / 250)):
-    #         melody2.append(pitch)
-    #
-    # print(does_it_sound_good(melody, melody2, 0))
-    #
     with open("major-scale.mid", "wb") as output_file:
         my_midi.writeFile(output_file)
