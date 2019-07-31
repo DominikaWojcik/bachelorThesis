@@ -1,6 +1,7 @@
 from mido import MidiFile
 import numpy as np
 from classes import Note
+from classes import BunchOfNotes
 
 # więcej niż jedna nutka do tyłu
 
@@ -51,13 +52,14 @@ def proccess_msg(mid):
     return temp_notes, tempo
 
 
-def compose_song(songs, shifts):
+def compose_song(songs, shifts, bunch_len):
     for song, shift in zip(songs, shifts):
         mid = MidiFile(song)
         temp, tempo = proccess_msg(mid)
         ticks_per_beat = mid.ticks_per_beat
 
         curr = None
+        bun = []
         for note in temp:
             prev = curr
             curr = note
@@ -65,37 +67,40 @@ def compose_song(songs, shifts):
                 continue
 
             p = Note(prev[0] - shift, ticks_to_ms(prev[1], ticks_per_beat, tempo))
+            bun.append(p)
+            if len(bun) <= bunch_len:
+                continue
+            bun.pop(0)
             c = Note(curr[0] - shift, ticks_to_ms(curr[1], ticks_per_beat, tempo))
 
-            if p not in dic:
-                dic[p] = {}
-                notes_amount[p] = 0
-            notes_amount[p] += 1
+            b = tuple(bun)
+            if b not in dic:
+                dic[b] = {}
+                notes_amount[b] = 0
+            notes_amount[b] += 1
 
-            if c not in dic[p]:
-                dic[p][c] = 1
+            if c not in dic[b]:
+                dic[b][c] = 1.0
             else:
-                dic[p][c] += 1
+                dic[b][c] += 1
+
+    print(dic)
+    print(notes_amount)
 
     for p in dic.keys():
         for c in dic[p].keys():
-            dic[p][c] /= notes_amount[p]
+            dic[p][c] /= float(notes_amount[p])
 
     print(dic)
 
-    degr = []
-    durations = []
-    sound = 64
-    dur = 1000
-    degr.append(sound)
-    durations.append(dur)
-    n = np.random.choice(list(dic.keys()))
-    notes = [n]
+    n = list(dic.keys())[np.random.choice(len(list(dic.keys())))]
+    notes = list(n)
     print(notes)
+
     for i in range(20):
-        n = np.random.choice([x for x in list(dic[n].keys())], 1, list(dic[n].values()))[0]
+        d = dic[tuple(notes[-bunch_len:])]
+        n = np.random.choice([x for x in list(d.keys())], 1, list(d.values()))[0]
         notes.append(n)
 
     print(notes)
     return notes
-

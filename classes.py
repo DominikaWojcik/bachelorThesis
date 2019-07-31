@@ -19,14 +19,20 @@ class Note:
 
 
 class BunchOfNotes:
-    def __init__(self):
-        self.length = 0
-        self.bunch = []
-
-    def __init__(self, bunch, l):
-        self.length = l
+    def __init__(self, bunch, length):
+        self.length = length
         self.bunch = bunch
 
-    def add(self, note):
-        self.length = self.length + 1
-        self.bunch.append(note)
+    def __eq__(self, other):
+        if self.bunch == other.bunch and self.length == other.length:
+            return True
+        return False
+
+    def __str__(self):
+        return str(self.bunch)
+
+    def __repr__(self):
+        return str(self.bunch)
+
+    def __hash__(self):
+        return hash(str(self))

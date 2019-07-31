@@ -14,12 +14,12 @@ for r, d, f in os.walk(path):
 
 print(songs)
 
-# songs = ['/home/dominikas14/PycharmProjects/pracaInz/muzyka_powazna/bwv1041a.mid']
-songs = ['river_flow.mid']
+songs = ['/home/dominikas14/PycharmProjects/pracaInz/muzyka_powazna/bwv1041a.mid']
+# songs = ['river_flow.mid']
 keys, modes = moveKey.get_key(songs)
 print('done')
 shifts = moveKey.get_shift(songs, keys)
 print('here')
-notes = composeSong.compose_song(songs, shifts)
+notes = composeSong.compose_song(songs, shifts, 10)
 print('almost')
 recordSong.record_song(notes)
